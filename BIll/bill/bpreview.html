@@ -1,0 +1,160 @@
+<html>
+<head>
+  <meta http-equiv="refresh" content="URL=bpreview.html">
+</head>
+<style>
+table {
+  width: 100%;
+  border-radius: 5px;
+  background-color: #f2f2f2;
+  padding: 5px;
+}
+</style>
+<div id="printablediv">
+  <table>
+    <tr></tr>
+    <tr>
+      <td colspan="2">
+        <img src="billlogo.png" width="100%">
+      </td>
+    </tr>
+    <tr>
+      <td colspan="2"><hr></td>
+    </tr>
+    <tr>
+      <td>
+        <?php
+          $servername = "localhost";
+          $username = "root";
+          $password = "";
+          $dbname = "bill";
+          $conn = mysqli_connect($servername, $username, $password, $dbname);
+          if (!$conn) {
+              die("Connection failed: " . mysqli_connect_error());
+          }
+          $sql = "SELECT * FROM user_accounts WHERE type ='admin'";
+          $result = $conn->query($sql);
+          if ($result->num_rows > 0) {
+              while($row = $result->fetch_assoc()) {
+                  $numbers = $row["address"];
+                  $array = explode(",", $numbers);
+                  $arrlength = count($array);
+                  $x = 0;
+                  while ($x < $arrlength) {
+                      echo "$array[$x]<br>";
+                      $x++;
+                  }
+              }
+          }
+          $conn->close();
+        ?>
+      </td>
+      <td align="right">
+        bill no:
+        <?php
+          $conn = mysqli_connect($servername, $username, $password, $dbname);
+          if (!$conn) {
+              die("Connection failed: " . mysqli_connect_error());
+          }
+          $sql = "SELECT MAX(bill_no) as bill FROM bill_records";
+          $result = $conn->query($sql);
+          if ($result->num_rows > 0) {
+              if($row = $result->fetch_assoc()) {
+                  $billno = $row['bill'] + 1;
+                  echo $billno;
+              }
+          }
+        ?>
+        <br>
+        <?php echo ''.date("Y-m-d").' '.date("h:i:sa ").''; ?>
+      </td>
+    </tr>
+    <tr>
+      <td colspan="2"><hr></td>
+    </tr>
+    <tr>
+      <td colspan="2">
+        <table width="100%" style="border-collapse: collapse; border: 1px solid black;">
+          <tr>
+            <th style="border: 1px solid black;">p id</th>
+            <th style="border: 1px solid black;">product</th>
+            <th style="border: 1px solid black;">price</th>
+            <th style="border: 1px solid black;">qty</th>
+            <th style="border: 1px solid black;">amount</th>
+          </tr>
+          <?php
+            $conn = mysqli_connect($servername, $username, $password, $dbname);
+            if (!$conn) {
+                die("Connection failed: " . mysqli_connect_error());
+            }
+            $result = mysqli_query($conn, "SELECT * FROM bil_temp");
+            $d = 0;  // Initialize $d here
+            while ($row = mysqli_fetch_array($result)) {
+                $prodid = $row['p_id'];
+                $amount = $row['price'];
+                $qt = $row['qty'];
+                $pid = 'p ' . $row['p_id'];
+                $tot = $row['total_price'];
+                $d = $row['discount'];
+                $result1 = mysqli_query($conn, "SELECT * FROM product_details WHERE pid = '$prodid'");
+                while ($row1 = mysqli_fetch_array($result1)) {
+                    $pname = $row1['product_name'];
+                }
+                echo '<tr><td style="border: 1px solid black;">' . $pid . '</td><td align="center" style="border: 1px solid black;">' . $pname . '</td><td style="border: 1px solid black;">' . $amount . '</td><td style="border: 1px solid black;">' . $qt . '</td><td style="border: 1px solid black;">' . $tot . '</td></tr>';
+            }
+          ?>
+          <tr>
+            <td align="right" colspan="4">total:</td>
+            <td>
+              <?php
+                $amt = 0;
+                $res = mysqli_query($conn, "SELECT * FROM bil_temp");
+                while ($ro = mysqli_fetch_array($res)) {
+                    $amt += $ro['total_price'];
+                }
+                echo $amt;
+              ?>
+            </td>
+          </tr>
+          <tr>
+            <td colspan="5" style="padding:2px 8px;">
+              <?php
+                if (($d == 0) || ($d == "")) {
+                    $d = 0;
+                } else {
+                    echo 'discount: ' . $d . '%';
+                }
+              ?>
+              <p align="right">final amount:&nbsp;
+              <?php
+                $amt = $amt - $amt * ($d / 100);
+                echo round($amt);
+              ?>
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</div>
+
+<form id="printForm" action="stockupdate.php" method="post">
+  <button type="button" style="width: 100%; background-color: #4CAF50; color: white; padding: 0px 0px; margin: 0px; border: none; border-radius: 4px; cursor: pointer;" onclick="printAndSubmit()">Print receipt</button>
+</form>
+
+<script>
+function printDiv(divID) {
+    var divElements = document.getElementById(divID).innerHTML;
+    var oldPage = document.body.innerHTML;
+    document.body.innerHTML = "<html><head><title></title></head><body>" + divElements + "</body>";
+    window.print();
+    document.body.innerHTML = oldPage;
+}
+
+function printAndSubmit() {
+    printDiv('printablediv');
+    document.getElementById('printForm').submit();
+}
+</script>
+</html>
